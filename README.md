@@ -1,5 +1,5 @@
-RS-485 Interface for Tracer MT-5
-================================
+Communication Interface for Tracer MT-5
+=======================================
 
 This is an Arduino and Python library for interfacing with the SainSonic Tracer
 series solar charge regulators.
