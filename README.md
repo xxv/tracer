@@ -21,8 +21,8 @@ Pinout
 ------
 
 Pin 1 is on the left when looking at the connector with the contacts facing
-forward. See [8P8C][] for an example of the physical connector and location of
-pin 1.
+forward and the wire down. See [8P8C][] for an example of the physical
+connector and location of pin 1.
 
 1. +12V (seems to be regulated)
 2. Gnd (common to both data and power)
