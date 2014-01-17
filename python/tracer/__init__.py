@@ -10,11 +10,13 @@
 #
 
 class Result(object):
+    """A command result from the controller."""
     def __init__(self, data):
         self.data = data
         self.decode(data)
 
     def decode(self, data):
+        """Decodes the result, storing data as fields"""
         pass
 
     def to_float(self, two_bytes):
@@ -23,6 +25,7 @@ class Result(object):
         return ((two_bytes[1] << 8) | two_bytes[0]) / 100.0
 
 class QueryResult(Result):
+    """The result of a query command."""
     def decode(self, data):
         """Decodes the query result, storing results as fields"""
         self.batt_voltage = self.to_float(data[0:2])
@@ -43,19 +46,23 @@ class QueryResult(Result):
         self.charge_current = self.to_float(data[21:2])
 
 class Command(object):
+    """A command sent to the controller"""
     def __init__(self, code, data= []):
         self.code = code
         self.data = data
     def decode_result(self, data):
+        """Decodes the data, storing it in fields"""
         pass
 
 class QueryCommand(Command):
+    """A command that queries the status of the controller"""
     def __init__(self):
         Command.__init__(self, 0xA0)
     def decode_result(self, data):
         return QueryResult(data)
 
 class ManualCommand(Command):
+    """A command that turns the load on or off"""
     def __init__(self, state):
         if state:
             data = [0x01]
@@ -64,13 +71,19 @@ class ManualCommand(Command):
         Command.__init__(self, 0xAA, data)
 
 class TracerSerial(object):
+    """A serial interface to the Tracer"""
     comm_init = [0xAA, 0x55] * 3 + [0xEB, 0x90] * 3
 
     def __init__(self, tracer, port):
+        """Create a new Tracer interface on the given serial port
+
+        tracer is a Tracer() object
+        port is an open serial port"""
         self.tracer = tracer
         self.port = port
 
     def to_bytes(self, command):
+        """Converts the command into the bytes that should be sent"""
         cmd_data = self.tracer.get_command_bytes(command) + [0x00, 0x00, 0x7F]
         crc_data = self.tracer.add_crc(cmd_data)
         to_send = self.comm_init + crc_data
@@ -78,10 +91,17 @@ class TracerSerial(object):
         return to_send
 
 class Tracer(object):
+    """An implementation of the Tracer MT-5 communication protocol"""
     def __init__(self, controller_id):
+        """Create a new Tracer interface
+
+        controller_id - the unit this was tested with is 0x16"""
         self.controller_id = controller_id
 
     def get_command_bytes(self, command):
+        """Given a command, gets its byte representation
+
+        This excludes the CRC and trailer."""
         data = []
         data.append(self.controller_id)
         data.append(command.code)
@@ -91,6 +111,7 @@ class Tracer(object):
         return data
 
     def verify_crc(self, data):
+        """Returns true if the CRC embedded in the data is valid"""
         verify = self.add_crc(data)
 
         return data == verify
