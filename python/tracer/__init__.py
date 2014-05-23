@@ -28,12 +28,14 @@ class QueryResult(Result):
     """The result of a query command."""
     def decode(self, data):
         """Decodes the query result, storing results as fields"""
+	if len(data) < 23:
+	    print "Not enough data. Need 23 bytes, got %d" % len(data)
         self.batt_voltage = self.to_float(data[0:2])
-        self.pv_voltage = self.to_float(data[2:2])
+        self.pv_voltage = self.to_float(data[2:4])
         # [4:2] reserved; always 0
-        self.load_amps = self.to_float(data[6:2])
-        self.batt_overdischarge_voltage = self.to_float(data[8:2])
-        self.batt_full_voltage = self.to_float(data[10:2])
+        self.load_amps = self.to_float(data[6:8])
+        self.batt_overdischarge_voltage = self.to_float(data[8:10])
+        self.batt_full_voltage = self.to_float(data[10:12])
         self.load_on = data[12] != 0
         self.load_overload = data[13] != 0
         self.load_short = data[14] != 0
@@ -43,7 +45,7 @@ class QueryResult(Result):
         self.batt_full = data[18] != 0
         self.batt_charging = data[19] != 0
         self.batt_temp = data[20] - 30;
-        self.charge_current = self.to_float(data[21:2])
+        self.charge_current = self.to_float(data[21:23])
 
 class Command(object):
     """A command sent to the controller"""
