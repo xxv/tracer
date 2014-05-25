@@ -74,7 +74,8 @@ class ManualCommand(Command):
 
 class TracerSerial(object):
     """A serial interface to the Tracer"""
-    comm_init = [0xAA, 0x55] * 3 + [0xEB, 0x90] * 3
+    sync_header = [0xEB, 0x90] * 3
+    comm_init = [0xAA, 0x55] * 3 + sync_header
 
     def __init__(self, tracer, port):
         """Create a new Tracer interface on the given serial port
@@ -91,6 +92,17 @@ class TracerSerial(object):
         to_send = self.comm_init + crc_data
 
         return to_send
+
+    def from_bytes(self, data):
+        """Given bytes from the serial port, returns the appropriate command result"""
+        if list(data[0:6]) != self.sync_header:
+            raise Exception("Invalid sync header")
+        if len(data) != data[8] + 12:
+            raise Exception("Invalid length")
+        print list(data[6:])
+        if not self.tracer.verify_crc(data[6:]):
+            raise Exception("Invalid CRC")
+        return self.tracer.get_command(data[6:])
 
 class Tracer(object):
     """An implementation of the Tracer MT-5 communication protocol"""
@@ -112,6 +124,10 @@ class Tracer(object):
 
         return data
 
+    def get_command(self, data):
+        if data[1] == 0xA0:
+            return QueryResult(data[3:])
+
     def verify_crc(self, data):
         """Returns true if the CRC embedded in the data is valid"""
         verify = self.add_crc(data)
@@ -120,7 +136,9 @@ class Tracer(object):
 
     def add_crc(self, data):
         """Returns a copy of the data with the CRC added"""
-        data = list(data)
+        data = bytearray(data)
+        if len(data) < 6:
+            raise Exception("data are too short")
         # the input CRC bytes must be zeroed
         data[data[2] + 3] = 0
         data[data[2] + 4] = 0

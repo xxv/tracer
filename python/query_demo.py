@@ -5,17 +5,23 @@ from tracer import Tracer, TracerSerial, QueryCommand, ManualCommand
 
 tracer = Tracer(0x16)
 
-ser = serial.Serial('/dev/ttyAMA0', 9600, timeout = 1)
-t_ser = TracerSerial(tracer, "")
-query = QueryCommand()
-ser.write(bytearray(t_ser.to_bytes(query)))
+fake = bytearray([0xEB, 0x90, 0xEB, 0x90, 0xEB, 0x90, 0x0, 0xA0, 0x18, 0xBE, 0x4, 0xB5, 0x4, 0x0, 0x0, 0xE, 0x0, 0x53, 0x4, 0xA5, 0x5, 0x1, 0x0, 0x0, 0x1F, 0x0, 0x0, 0x0, 0x0, 0x33, 0x0, 0x0, 0x0, 0x99, 0x5B, 0x7F])
+fake = None
 
-data = bytearray(ser.read(200))
+query = QueryCommand()
+
+t_ser = TracerSerial(tracer, "")
+if not fake:
+    ser = serial.Serial('/dev/ttyAMA0', 9600, timeout = 1)
+    ser.write(bytearray(t_ser.to_bytes(query)))
+    data = bytearray(ser.read(200))
+else:
+    data = fake
+
 print "Read %d bytes" % len(data)
 print ", ".join(map(lambda a: "%0X" % (a), data))
-result = query.decode_result(data)
+result = t_ser.from_bytes(data)
 
-#print "CRC %s" % tracer.verify_crc(data)
 print "PV voltage %s" % result.pv_voltage
 print "Battery voltage %s" % result.batt_voltage
 print "Load is %s" % result.load_on
