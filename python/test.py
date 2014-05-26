@@ -49,7 +49,7 @@ class TestTracerSerial(TestCase):
         self.assertEqual(bytearray(b'\xAA\x55\xAA\x55\xAA\x55\xEB\x90\xEB\x90\xEB\x90' + fixture_data), result)
 
     def test_from_bytes(self):
-        result = self.ts.from_bytes(bytearray(b'\xEB\x90\xEB\x90\xEB\x90\x00\x12\x03'+fixture_data + '\x00\x00\x7A'))
+        result = self.ts.from_bytes(bytearray(b'\xEB\x90\xEB\x90\xEB\x90\x00\x12\x03' + fixture_data + b'\x00\x00\x7A'))
         self.assertEqual(fixture_data, result.data)
 
     def test_receive_result(self):
