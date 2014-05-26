@@ -13,7 +13,7 @@ query = QueryCommand()
 t_ser = TracerSerial(tracer, "")
 if not fake:
     ser = serial.Serial('/dev/ttyAMA0', 9600, timeout = 1)
-    ser.write(bytearray(t_ser.to_bytes(query)))
+    ser.write(t_ser.to_bytes(query))
     data = bytearray(ser.read(200))
 else:
     data = fake
@@ -21,6 +21,7 @@ else:
 print "Read %d bytes" % len(data)
 print ", ".join(map(lambda a: "%0X" % (a), data))
 result = t_ser.from_bytes(data)
+print result
 
 print "PV voltage %s" % result.pv_voltage
 print "Battery voltage %s" % result.batt_voltage

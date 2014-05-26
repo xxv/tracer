@@ -11,6 +11,7 @@
 
 class Result(object):
     """A command result from the controller."""
+    props=[]
     def __init__(self, data):
         self.data = data
         self.decode(data)
@@ -23,9 +24,12 @@ class Result(object):
         """Convert a list of two bytes into a floating point value."""
         # convert two bytes to a float value
         return ((two_bytes[1] << 8) | two_bytes[0]) / 100.0
+    def __str__(self):
+        return "%s{%s}" % (self.__class__.__name__, ", ".join(map(lambda a: "%s: %s" % (a, getattr(self, a)), self.props)))
 
 class QueryResult(Result):
     """The result of a query command."""
+    props=['batt_voltage', 'pv_voltage', 'load_amps', 'batt_overdischarge_voltage', 'batt_full_voltage', 'load_on', 'load_overload', 'load_short', 'batt_overload', 'batt_overdischarge', 'batt_full', 'batt_charging', 'batt_temp', 'charge_current']
     def decode(self, data):
         """Decodes the query result, storing results as fields"""
 	if len(data) < 23:
@@ -49,7 +53,7 @@ class QueryResult(Result):
 
 class Command(object):
     """A command sent to the controller"""
-    def __init__(self, code, data= []):
+    def __init__(self, code, data=bytearray()):
         self.code = code
         self.data = data
     def decode_result(self, data):
@@ -74,8 +78,8 @@ class ManualCommand(Command):
 
 class TracerSerial(object):
     """A serial interface to the Tracer"""
-    sync_header = [0xEB, 0x90] * 3
-    comm_init = [0xAA, 0x55] * 3 + sync_header
+    sync_header = bytearray([0xEB, 0x90] * 3)
+    comm_init = bytearray([0xAA, 0x55] * 3) + sync_header
 
     def __init__(self, tracer, port):
         """Create a new Tracer interface on the given serial port
@@ -87,7 +91,7 @@ class TracerSerial(object):
 
     def to_bytes(self, command):
         """Converts the command into the bytes that should be sent"""
-        cmd_data = self.tracer.get_command_bytes(command) + [0x00, 0x00, 0x7F]
+        cmd_data = self.tracer.get_command_bytes(command) + bytearray(b'\x00\x00\x7F')
         crc_data = self.tracer.add_crc(cmd_data)
         to_send = self.comm_init + crc_data
 
@@ -95,15 +99,37 @@ class TracerSerial(object):
 
     def from_bytes(self, data):
         """Given bytes from the serial port, returns the appropriate command result"""
-        if list(data[0:6]) != self.sync_header:
+        if data[0:6] != self.sync_header:
             raise Exception("Invalid sync header")
         if len(data) != data[8] + 12:
-            raise Exception("Invalid length")
-        print list(data[6:])
+            raise Exception("Invalid length. Expecting %d, got %d" % (data[8] + 12, len(data)))
         if not self.tracer.verify_crc(data[6:]):
-            print "invalid crc" 
+            print "invalid crc"
 	    #raise Exception("Invalid CRC")
-        return self.tracer.get_command(data[6:])
+        return self.tracer.get_result(data[6:])
+
+    def send_command(self, command):
+        to_send = self.to_bytes(command)
+        if len(to_send) != self.port.write(to_send):
+            raise IOError("Error sending command: did not send all bytes")
+
+    def receive_result(self):
+        buff = bytearray()
+        read_idx = 0
+
+        b = self.port.read(1)
+        to_read = 200
+
+        while b >= 0 and read_idx < (to_read + 12):
+            buff += b
+            if read_idx < len(self.sync_header) and b[0] != self.sync_header[read_idx]:
+                raise IOError("Error receiving result: invalid sync header")
+            # the location of the read length
+            elif read_idx == 8:
+                to_read = b[0]
+            read_idx += 1
+            b = self.port.read(1)
+        return self.from_bytes(buff)
 
 class Tracer(object):
     """An implementation of the Tracer MT-5 communication protocol"""
@@ -116,8 +142,8 @@ class Tracer(object):
     def get_command_bytes(self, command):
         """Given a command, gets its byte representation
 
-        This excludes the CRC and trailer."""
-        data = []
+        This excludes the header, CRC, and trailer."""
+        data = bytearray()
         data.append(self.controller_id)
         data.append(command.code)
         data.append(len(command.data))
@@ -125,8 +151,8 @@ class Tracer(object):
 
         return data
 
-    def get_command(self, data):
-        if data[1] == 0xA0:
+    def get_result(self, data):
+        if data[1] == QueryCommand().code:
             return QueryResult(data[3:])
 
     def verify_crc(self, data):
@@ -137,7 +163,6 @@ class Tracer(object):
 
     def add_crc(self, data):
         """Returns a copy of the data with the CRC added"""
-        data = list(data)
         if len(data) < 6:
             raise Exception("data are too short")
         # the input CRC bytes must be zeroed
