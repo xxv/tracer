@@ -5,8 +5,9 @@ from tracer import Tracer, TracerSerial, QueryCommand, ManualCommand
 
 tracer = Tracer(0x16)
 
-fake = bytearray([0xEB, 0x90, 0xEB, 0x90, 0xEB, 0x90, 0x0, 0xA0, 0x18, 0xBE, 0x4, 0xB5, 0x4, 0x0, 0x0, 0xE, 0x0, 0x53, 0x4, 0xA5, 0x5, 0x1, 0x0, 0x0, 0x1F, 0x0, 0x0, 0x0, 0x0, 0x33, 0x0, 0x0, 0x0, 0x99, 0x5B, 0x7F])
 fake = None
+# A sample response, to show what this demo does. Uncomment to use.
+# fake = bytearray(b'\xEB\x90\xEB\x90\xEB\x90\x00\xA0\x18\xD2\x04\xD3\x04\x00\x00\x0E\x00\x53\x04\xA5\x05\x01\x00\x00\x1F\x00\x00\x00\x01\x33\x0A\x00\x00\x99\x5B\x7F')
 
 query = QueryCommand()
 
@@ -30,7 +31,7 @@ print "Load short %s" % result.load_short
 print "Load amps %s" % result.load_amps
 print "Load overload %s" % result.load_overload
 print "Battery charging is %s" % result.batt_charging
-print "Battery full is %s" % result.batt_charging
+print "Battery full is %s" % result.batt_full
 print "Battery overload is %s" % result.batt_overload
 print "Battery overdischarge is %s" % result.batt_overdischarge
 print "Battery temp is %s" % result.batt_temp
