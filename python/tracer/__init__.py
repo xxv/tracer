@@ -101,7 +101,8 @@ class TracerSerial(object):
             raise Exception("Invalid length")
         print list(data[6:])
         if not self.tracer.verify_crc(data[6:]):
-            raise Exception("Invalid CRC")
+            print "invalid crc" 
+	    #raise Exception("Invalid CRC")
         return self.tracer.get_command(data[6:])
 
 class Tracer(object):
@@ -136,7 +137,7 @@ class Tracer(object):
 
     def add_crc(self, data):
         """Returns a copy of the data with the CRC added"""
-        data = bytearray(data)
+        data = list(data)
         if len(data) < 6:
             raise Exception("data are too short")
         # the input CRC bytes must be zeroed
