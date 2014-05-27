@@ -117,10 +117,13 @@ class TracerSerial(object):
         buff = bytearray()
         read_idx = 0
 
-        b = bytearray(self.port.read(1))
         to_read = 200
 
+        b = 0
         while b >= 0 and read_idx < (to_read + 12):
+            b = bytearray(self.port.read(1))
+	    if not b >= 0:
+		break
             buff += b
             if read_idx < len(self.sync_header) and b[0] != self.sync_header[read_idx]:
                 raise IOError("Error receiving result: invalid sync header")
@@ -128,7 +131,6 @@ class TracerSerial(object):
             elif read_idx == 8:
                 to_read = b[0]
             read_idx += 1
-            b = bytearray(self.port.read(1))
         return self.from_bytes(buff)
 
 class Tracer(object):
