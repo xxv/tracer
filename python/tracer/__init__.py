@@ -117,7 +117,7 @@ class TracerSerial(object):
         buff = bytearray()
         read_idx = 0
 
-        b = self.port.read(1)
+        b = bytearray(self.port.read(1))
         to_read = 200
 
         while b >= 0 and read_idx < (to_read + 12):
@@ -128,7 +128,7 @@ class TracerSerial(object):
             elif read_idx == 8:
                 to_read = b[0]
             read_idx += 1
-            b = self.port.read(1)
+            b = bytearray(self.port.read(1))
         return self.from_bytes(buff)
 
 class Tracer(object):
