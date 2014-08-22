@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import serial
-from tracer import Tracer, TracerSerial, QueryCommand, ManualCommand
+from tracer import Tracer, TracerSerial, QueryCommand
 
 fake = None
 # A sample response, to show what this demo does. Uncomment to use.
