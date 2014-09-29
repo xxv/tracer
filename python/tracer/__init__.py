@@ -2,6 +2,8 @@
 
 # Tracer Solar Regulator interface for MT-5 display
 #
+# Copyright 2014 Steve Pomeroy <steve@staticfree.info>
+#
 # Based on document by alexruhmann@body-soft.de
 #   document version 3, 2011-12-13
 #
@@ -9,9 +11,8 @@
 #   Regulator 12/24V INPUT 10A
 #
 
-class Result(object):
+class Result(dict):
     """A command result from the controller."""
-    props=[]
     def __init__(self, data):
         self.data = data
         self.decode(data)
@@ -25,31 +26,30 @@ class Result(object):
         # convert two bytes to a float value
         return ((two_bytes[1] << 8) | two_bytes[0]) / 100.0
     def __str__(self):
-        return "%s{%s}" % (self.__class__.__name__, ", ".join(map(lambda a: "%s: %s" % (a, getattr(self, a)), self.props)))
+        return "%s{%s}" % (self.__class__.__name__, ", ".join(map(lambda a: "%s: %s" % (a, self[a]), self.keys())))
 
 class QueryResult(Result):
     """The result of a query command."""
-    props=['batt_voltage', 'pv_voltage', 'load_amps', 'batt_overdischarge_voltage', 'batt_full_voltage', 'load_on', 'load_overload', 'load_short', 'batt_overload', 'batt_overdischarge', 'batt_full', 'batt_charging', 'batt_temp', 'charge_current']
     def decode(self, data):
         """Decodes the query result, storing results as fields"""
 	if len(data) < 23:
 	    print "Not enough data. Need 23 bytes, got %d" % len(data)
-        self.batt_voltage = self.to_float(data[0:2])
-        self.pv_voltage = self.to_float(data[2:4])
+        self['batt_voltage']= self.to_float(data[0:2])
+        self['pv_voltage']= self.to_float(data[2:4])
         # [4:2] reserved; always 0
-        self.load_amps = self.to_float(data[6:8])
-        self.batt_overdischarge_voltage = self.to_float(data[8:10])
-        self.batt_full_voltage = self.to_float(data[10:12])
-        self.load_on = data[12] != 0
-        self.load_overload = data[13] != 0
-        self.load_short = data[14] != 0
+        self['load_amps']= self.to_float(data[6:8])
+        self['batt_overdischarge_voltage']= self.to_float(data[8:10])
+        self['batt_full_voltage']= self.to_float(data[10:12])
+        self['load_on']= data[12] != 0
+        self['load_overload']= data[13] != 0
+        self['load_short']= data[14] != 0
         # data[15] reserved; always 0
-        self.batt_overload = data[16] != 0
-        self.batt_overdischarge = data[17] != 0
-        self.batt_full = data[18] != 0
-        self.batt_charging = data[19] != 0
-        self.batt_temp = data[20] - 30;
-        self.charge_current = self.to_float(data[21:23])
+        self['batt_overload']= data[16] != 0
+        self['batt_overdischarge']= data[17] != 0
+        self['batt_full']= data[18] != 0
+        self['batt_charging']= data[19] != 0
+        self['batt_temp']= data[20] - 30;
+        self['charge_current']= self.to_float(data[21:23])
 
 class Command(object):
     """A command sent to the controller"""
