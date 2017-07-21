@@ -52,23 +52,28 @@ class TestTracerSerial(TestCase):
         result = self.ts.from_bytes(bytearray(b'\xEB\x90\xEB\x90\xEB\x90\x00\x12\x03' + fixture_data + b'\x00\x00\x7A'))
         self.assertEqual(fixture_data, result.data)
 
-    def test_receive_result(self):
-        class FakePort(object):
-            def __init__(self, data):
-                self.data = data
-            read_idx = 0
-            def read(self, count=1):
-                result = self.data[self.read_idx:self.read_idx+count]
-                self.read_idx += count
-                return result
-        self.ts.port = FakePort(full_query_result)
+    def internal_test_receive_result(self, input_data, expected_data):
+        self.ts.port = FakePort(input_data)
         self.ts.from_bytes = Mock(return_result=QueryResult(query_result))
 
         # make the actual call
         result = self.ts.receive_result()
 
         self.assertNotEqual(None, result)
-        self.ts.from_bytes.assert_called_with(full_query_result)
+        self.ts.from_bytes.assert_called_with(expected_data)
+
+    def test_receive_result(self):
+        self.internal_test_receive_result(full_query_result, full_query_result)
+
+    def test_receive_result_with_trash_before(self):
+        # 150b trash
+        self.internal_test_receive_result(
+            b'longtrash-'* 15 + full_query_result,
+            full_query_result)
+
+        # Trash with partial header
+        self.internal_test_receive_result(
+            b'\xEB\x90trash' + full_query_result, full_query_result)
 
 class TestTracer(TestCase):
     def setUp(self):
@@ -81,6 +86,19 @@ class TestTracer(TestCase):
     def test_get_result(self):
         result = self.t.get_result(bytearray(b'\x00\xA0\x18') + query_result)
         self.assertEqual(QueryResult, type(result))
+
+
+class FakePort(object):
+    """Fake serial port that returns self.data."""
+
+    def __init__(self, data):
+        self.data = data
+    read_idx = 0
+    def read(self, count=1):
+        result = self.data[self.read_idx:self.read_idx+count]
+        self.read_idx += count
+        return result
+
 
 if __name__ == '__main__':
     unittest2.main()

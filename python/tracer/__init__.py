@@ -117,20 +117,38 @@ class TracerSerial(object):
     def receive_result(self):
         buff = bytearray()
         read_idx = 0
+        to_read = 212
 
-        to_read = 200
+        # Wait for sync-header, ignore any trash before.
+        header_ok = False
+        start_idx = 0
+        while b >= 0 and read_idx < to_read:
+            buff += bytearray(self.port.read(1))
+            read_idx += 1
+            if read_idx < len(self.sync_header):
+                continue
 
+            if buff[start_idx:] == self.sync_header:
+                header_ok = True
+                break
+            start_idx += 1  # Ignore trash before
+        if not header_ok:
+            raise IOError(
+                "Error receiving result: No sync header read after %s bytes"
+                % max_to_read)
+        buff = buff[start_idx:]
+        read_idx -= start_idx
+
+        # Read message
         b = 0
-        while b >= 0 and read_idx < (to_read + 12):
+        while b >= 0 and read_idx < to_read:
             b = bytearray(self.port.read(1))
             if not b >= 0:
                 break
             buff += b
-            if read_idx < len(self.sync_header) and b[0] != self.sync_header[read_idx]:
-                raise IOError("Error receiving result: invalid sync header")
             # the location of the read length
-            elif read_idx == 8:
-                to_read = b[0]
+            if read_idx == 8:
+                to_read = b[0] + 12
             read_idx += 1
         return self.from_bytes(buff)
 
