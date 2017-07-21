@@ -122,7 +122,7 @@ class TracerSerial(object):
         # Wait for sync-header, ignore any trash before.
         header_ok = False
         start_idx = 0
-        while b >= 0 and read_idx < to_read:
+        while read_idx < to_read:
             buff += bytearray(self.port.read(1))
             read_idx += 1
             if read_idx < len(self.sync_header):
