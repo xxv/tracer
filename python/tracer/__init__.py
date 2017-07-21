@@ -24,6 +24,7 @@ class Result(object):
         """Convert a list of two bytes into a floating point value."""
         # convert two bytes to a float value
         return ((two_bytes[1] << 8) | two_bytes[0]) / 100.0
+
     def __str__(self):
         return "%s{%s}" % (self.__class__.__name__, ", ".join(map(lambda a: "%s: %s" % (a, getattr(self, a)), self.props)))
 
@@ -32,8 +33,8 @@ class QueryResult(Result):
     props=['batt_voltage', 'pv_voltage', 'load_amps', 'batt_overdischarge_voltage', 'batt_full_voltage', 'load_on', 'load_overload', 'load_short', 'batt_overload', 'batt_overdischarge', 'batt_full', 'batt_charging', 'batt_temp', 'charge_current']
     def decode(self, data):
         """Decodes the query result, storing results as fields"""
-	if len(data) < 23:
-	    print "Not enough data. Need 23 bytes, got %d" % len(data)
+        if len(data) < 23:
+          print "Not enough data. Need 23 bytes, got %d" % len(data)
         self.batt_voltage = self.to_float(data[0:2])
         self.pv_voltage = self.to_float(data[2:4])
         # [4:2] reserved; always 0
@@ -105,10 +106,14 @@ class TracerSerial(object):
             raise Exception("Invalid length. Expecting %d, got %d" % (data[8] + 12, len(data)))
         if not self.tracer.verify_crc(data[6:]):
             print "invalid crc"
-	    #raise Exception("Invalid CRC")
+              #raise Exception("Invalid CRC")
         return self.tracer.get_result(data[6:])
 
     def send_command(self, command):
+        # Reset input in case there are some trash in the buffer
+        # that receive result from a QueryCommand would pick up.
+        self.port.reset_input_buffer()
+
         to_send = self.to_bytes(command)
         if len(to_send) != self.port.write(to_send):
             raise IOError("Error sending command: did not send all bytes")
@@ -116,20 +121,38 @@ class TracerSerial(object):
     def receive_result(self):
         buff = bytearray()
         read_idx = 0
+        to_read = 212
 
-        to_read = 200
+        # Wait for sync-header, ignore any trash before.
+        header_ok = False
+        start_idx = 0
+        while read_idx < to_read:
+            buff += bytearray(self.port.read(1))
+            read_idx += 1
+            if read_idx < len(self.sync_header):
+                continue
 
+            if buff[start_idx:] == self.sync_header:
+                header_ok = True
+                break
+            start_idx += 1  # Ignore trash before
+        if not header_ok:
+            raise IOError(
+                "Error receiving result: No sync header read after %s bytes"
+                % max_to_read)
+        buff = buff[start_idx:]
+        read_idx -= start_idx
+
+        # Read message
         b = 0
-        while b >= 0 and read_idx < (to_read + 12):
+        while b >= 0 and read_idx < to_read:
             b = bytearray(self.port.read(1))
-	    if not b >= 0:
-		break
+            if not b >= 0:
+                break
             buff += b
-            if read_idx < len(self.sync_header) and b[0] != self.sync_header[read_idx]:
-                raise IOError("Error receiving result: invalid sync header")
             # the location of the read length
-            elif read_idx == 8:
-                to_read = b[0]
+            if read_idx == 8:
+                to_read = b[0] + 12
             read_idx += 1
         return self.from_bytes(buff)
 
