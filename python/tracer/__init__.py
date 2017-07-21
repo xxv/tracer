@@ -110,6 +110,10 @@ class TracerSerial(object):
         return self.tracer.get_result(data[6:])
 
     def send_command(self, command):
+        # Reset input in case there are some trash in the buffer
+        # that receive result from a QueryCommand would pick up.
+        self.port.reset_input_buffer()
+
         to_send = self.to_bytes(command)
         if len(to_send) != self.port.write(to_send):
             raise IOError("Error sending command: did not send all bytes")
