@@ -22,5 +22,5 @@ and use getData() to retrieve the data objects.
 ### Restrictions
 
 This version sends only the A0 command to the Tracer, i.e. is
-a monitoring clinet. The Tracer cannot be controlled using this
+a monitoring client. The Tracer cannot be controlled using this
 client.
