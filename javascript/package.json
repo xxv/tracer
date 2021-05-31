@@ -1,14 +1,14 @@
 {
-  "name": "MPPTDataClient",
+  "name": "Tracer-4215RN",
   "version": "1.0.0",
-  "description": "Reads or requests data from Tracer 4215rn MPPT solar charger",
+  "description": "Client to request and collect Charger data",
   "main": "index.js",
   "dependencies": {
-    "serialport": "^9.0.7"
+    "serialport": "^9.1.0"
   },
   "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node test.js"
   },
   "author": "Markus Kohler",
   "license": "MIT"
